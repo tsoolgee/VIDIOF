@@ -15,30 +15,52 @@ jobs:
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
 
-    - name: Install DirectShow BaseClasses
+    - name: Download BaseClasses from Windows SDK
       shell: powershell
       run: |
-        # הורד את Windows SDK samples (BaseClasses)
-        $url = "https://github.com/microsoft/Windows-classic-samples/archive/refs/heads/main.zip"
-        Invoke-WebRequest $url -OutFile samples.zip
-        Expand-Archive samples.zip -DestinationPath samples
+        # BaseClasses נמצא ב-Windows SDK שכבר מותקן על הrunner
+        $sdkBase = "C:\Program Files (x86)\Windows Kits\10\Samples"
         
-        # העתק את BaseClasses לתיקיית הפרויקט
-        $src = "samples/Windows-classic-samples-main/Samples/Win7Samples/multimedia/directshow/baseclasses"
-        Copy-Item $src -Destination baseclasses -Recurse
+        # נסה לאתר baseclasses מתוך SDK מותקן
+        $possiblePaths = @(
+          "C:\Program Files (x86)\Windows Kits\10\Samples\multimedia\directshow\baseclasses",
+          "C:\Program Files\Windows Kits\10\Samples\multimedia\directshow\baseclasses"
+        )
         
-    - name: Build BaseClasses
-      shell: powershell
+        $found = $false
+        foreach ($p in $possiblePaths) {
+          if (Test-Path $p) {
+            Copy-Item $p -Destination baseclasses -Recurse
+            $found = $true
+            Write-Host "Found at $p"
+            break
+          }
+        }
+        
+        if (-not $found) {
+          # הורד ישירות מ-nuget - DirectShow BaseClasses
+          Write-Host "Downloading from nuget..."
+          Invoke-WebRequest "https://github.com/mediabrowser/directshow-baseclasses/archive/refs/heads/master.zip" -OutFile bc.zip
+          Expand-Archive bc.zip -DestinationPath bc_src
+          Copy-Item "bc_src/directshow-baseclasses-master" -Destination baseclasses -Recurse
+        }
+
+    - name: Build BaseClasses lib
+      shell: cmd
       run: |
         cd baseclasses
-        # בנה את strmbase.lib
-        msbuild baseclasses.sln /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143
-        Copy-Item x64/Release/strmbase.lib strmbase.lib
+        dir
+        msbuild baseclasses.sln /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143 /p:WindowsTargetPlatformVersion=10.0
+        if exist x64\Release\strmbase.lib (
+          copy x64\Release\strmbase.lib strmbase.lib
+        ) else if exist Release\strmbase.lib (
+          copy Release\strmbase.lib strmbase.lib
+        )
 
     - name: Configure CMake
-      run: cmake -B build -A x64
+      run: cmake -B build -A x64 -DCMAKE_BUILD_TYPE=Release
 
-    - name: Build
+    - name: Build Filter
       run: cmake --build build --config Release
 
     - name: Upload artifact
