@@ -12,20 +12,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v2
-
-    - name: Build BaseClasses
-      shell: cmd
-      run: |
-        cd baseclasses
-        msbuild baseclasses.sln /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143 /p:WindowsTargetPlatformVersion=10.0
-        copy x64\Release\strmbase.lib strmbase.lib
-
     - name: Configure CMake
       run: cmake -B build -A x64 -DCMAKE_BUILD_TYPE=Release
 
-    - name: Build Filter
+    - name: Build
       run: cmake --build build --config Release
 
     - name: Upload artifact
