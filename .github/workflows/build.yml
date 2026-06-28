@@ -1,0 +1,48 @@
+name: Build VideoFilter
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Install DirectShow BaseClasses
+      shell: powershell
+      run: |
+        # הורד את Windows SDK samples (BaseClasses)
+        $url = "https://github.com/microsoft/Windows-classic-samples/archive/refs/heads/main.zip"
+        Invoke-WebRequest $url -OutFile samples.zip
+        Expand-Archive samples.zip -DestinationPath samples
+        
+        # העתק את BaseClasses לתיקיית הפרויקט
+        $src = "samples/Windows-classic-samples-main/Samples/Win7Samples/multimedia/directshow/baseclasses"
+        Copy-Item $src -Destination baseclasses -Recurse
+        
+    - name: Build BaseClasses
+      shell: powershell
+      run: |
+        cd baseclasses
+        # בנה את strmbase.lib
+        msbuild baseclasses.sln /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143
+        Copy-Item x64/Release/strmbase.lib strmbase.lib
+
+    - name: Configure CMake
+      run: cmake -B build -A x64
+
+    - name: Build
+      run: cmake --build build --config Release
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: VideoFilter
+        path: build/Release/VideoFilter.ax
