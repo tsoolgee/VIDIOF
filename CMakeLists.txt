@@ -3,7 +3,6 @@ project(VideoFilter)
 
 set(CMAKE_CXX_STANDARD 17)
 
-# בנה את strmbase ישירות מהקוד המקור
 set(BASECLASSES_DIR "${CMAKE_SOURCE_DIR}/baseclasses")
 
 set(BASECLASSES_SOURCES
@@ -44,8 +43,7 @@ add_library(strmbase STATIC ${BASECLASSES_SOURCES})
 
 target_compile_definitions(strmbase PRIVATE
     WIN32 _WINDOWS UNICODE _UNICODE
-    _CRT_SECURE_NO_WARNINGS
-    WINVER=0x0601
+    _CRT_SECURE_NO_WARNINGS WINVER=0x0601
 )
 
 target_include_directories(strmbase PRIVATE
@@ -55,15 +53,14 @@ target_include_directories(strmbase PRIVATE
     "C:/Program Files (x86)/Windows Kits/10/Include/10.0.22621.0/ucrt"
 )
 
-# ה-Filter עצמו
 add_library(VideoFilter SHARED
     SRC/VideoFilter.cpp
+    VideoFilter.def
 )
 
 target_compile_definitions(VideoFilter PRIVATE
     WIN32 _WINDOWS _USRDLL UNICODE _UNICODE
-    _CRT_SECURE_NO_WARNINGS
-    WINVER=0x0601
+    _CRT_SECURE_NO_WARNINGS WINVER=0x0601
 )
 
 target_include_directories(VideoFilter PRIVATE
