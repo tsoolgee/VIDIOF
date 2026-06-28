@@ -15,47 +15,12 @@ jobs:
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
 
-    - name: Download BaseClasses from Windows SDK
-      shell: powershell
-      run: |
-        # BaseClasses נמצא ב-Windows SDK שכבר מותקן על הrunner
-        $sdkBase = "C:\Program Files (x86)\Windows Kits\10\Samples"
-        
-        # נסה לאתר baseclasses מתוך SDK מותקן
-        $possiblePaths = @(
-          "C:\Program Files (x86)\Windows Kits\10\Samples\multimedia\directshow\baseclasses",
-          "C:\Program Files\Windows Kits\10\Samples\multimedia\directshow\baseclasses"
-        )
-        
-        $found = $false
-        foreach ($p in $possiblePaths) {
-          if (Test-Path $p) {
-            Copy-Item $p -Destination baseclasses -Recurse
-            $found = $true
-            Write-Host "Found at $p"
-            break
-          }
-        }
-        
-        if (-not $found) {
-          # הורד ישירות מ-nuget - DirectShow BaseClasses
-          Write-Host "Downloading from nuget..."
-          Invoke-WebRequest "https://github.com/mediabrowser/directshow-baseclasses/archive/refs/heads/master.zip" -OutFile bc.zip
-          Expand-Archive bc.zip -DestinationPath bc_src
-          Copy-Item "bc_src/directshow-baseclasses-master" -Destination baseclasses -Recurse
-        }
-
-    - name: Build BaseClasses lib
+    - name: Build BaseClasses
       shell: cmd
       run: |
         cd baseclasses
-        dir
         msbuild baseclasses.sln /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143 /p:WindowsTargetPlatformVersion=10.0
-        if exist x64\Release\strmbase.lib (
-          copy x64\Release\strmbase.lib strmbase.lib
-        ) else if exist Release\strmbase.lib (
-          copy Release\strmbase.lib strmbase.lib
-        )
+        copy x64\Release\strmbase.lib strmbase.lib
 
     - name: Configure CMake
       run: cmake -B build -A x64 -DCMAKE_BUILD_TYPE=Release
