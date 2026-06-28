@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 17)
 # נבנה ידנית נגד strmbase.lib
 
 add_library(VideoFilter SHARED
-    src/VideoFilter.cpp
+    SRC/VideoFilter.cpp
 )
 
 target_compile_definitions(VideoFilter PRIVATE
